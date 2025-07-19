@@ -3,8 +3,8 @@ name: GameCI Template
 on:
   push:
     branches:
-	  - main
-	  - development
+	  main
+	  development
 	  
 jobs:
  buildWebGL:
