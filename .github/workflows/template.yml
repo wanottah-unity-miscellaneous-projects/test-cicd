@@ -6,17 +6,15 @@ on:
       - development
 jobs:
   buildWebGL:
-    - name: Build for WebGL
-    - runs-on: ubuntu-latest
+    name: Build for WebGL
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
-      - name: Checkout repository
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-      - name: Restore Library cache
       - uses: actions/cache@v3
         with:
           path: Library
@@ -25,7 +23,6 @@ jobs:
           Library-build-
           Library-
    
-      - name: Build project
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -43,7 +40,6 @@ deployPages:
   name: Deploy to Itch.io
   runs-on: ubuntu-latest
   steps:
-    - name: Checkout code
     - uses: actions/checkout@v3
       with:
         name: build-WebGL
@@ -51,7 +47,6 @@ deployPages:
     - name: Display structure of root files
     - run: ls -R
       working-directory: build/WebGL
-    - name: Deploy
     - uses: JamesIves/github-pages-deploy-action@4.1.4
       with:
         branch: itch-io
