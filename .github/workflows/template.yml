@@ -18,9 +18,9 @@ jobs:
       - name: Restore LFS cache
         uses: actions/cache@v3
         id: lfs-cache
-        with: null
-        path: .git/lfs
-        key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
+          with: null
+          path: .git/lfs
+          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
       - name: Git LFS Pull
         run: |
           git lfs pull
