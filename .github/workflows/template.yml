@@ -18,10 +18,8 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: Library
-        key: Library-build-WebGL
-        restore-keys: |
-          Library-build-
-          Library-
+          key: Library-build-WebGL
+          restore-keys: Library-
    
       - uses: game-ci/unity-builder@v4
         env:
