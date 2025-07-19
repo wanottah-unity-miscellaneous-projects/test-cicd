@@ -14,7 +14,7 @@ jobs:
      fail-fast: false
    steps:
      - name: Checkout repository
-       uses: actions/checkout@v4
+         uses: actions/checkout@v4
 	   
      - name: Create LFS file list
        run: git lfs ls-files -l | cut -d' ' -fl | sort > .lfs-assets-id
