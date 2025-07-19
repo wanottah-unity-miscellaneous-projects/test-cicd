@@ -1,14 +1,11 @@
 name: Build project
-
 on:
   push:
     branches:
       - main
       - development
-
 jobs:
   buildWebGL:
-  
     name: Build for WebGL
     runs-on: ubuntu-latest
     strategy:
@@ -19,7 +16,6 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
-  
       - name: Restore Library cache
         uses: actions/cache@v3
         with:
@@ -28,7 +24,6 @@ jobs:
         restore-keys: |
           Library-build-
           Library-
- 
       - name: Build project
         uses: game-ci/unity-builder@v4
         env:
@@ -41,7 +36,6 @@ jobs:
         with:
           name: build-WebGL
         path: build-WebGL
-
 deployPages:
   needs: buildWebGL
   name: Deploy to Itch.io
