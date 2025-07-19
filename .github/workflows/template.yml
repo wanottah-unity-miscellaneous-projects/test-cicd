@@ -1,11 +1,11 @@
 name: GameCI Template
 
 on:
-    push:
-        branches:
-            - main
-            - development
-	  
+ push:
+  branches:
+    - main
+    - development
+
 jobs:
  buildWebGL:
    name: Build for WebGL
