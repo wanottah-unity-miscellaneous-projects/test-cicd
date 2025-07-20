@@ -7,7 +7,7 @@ on:
       - development
 
 jobs:
-  buildForAllSupportedPlatforms:
+  buildForWebGL:
     name: Build for WebGL
     runs-on: ubuntu-latest
     strategy:
@@ -40,7 +40,7 @@ jobs:
           path: build/WebGL
 
   deployToItchIO:
-    needs: Build for WebGL
+    needs: buildForWebGL
     name: Deploy to Itch.io
     runs-on: ubuntu-latest
     steps:
