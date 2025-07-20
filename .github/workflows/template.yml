@@ -1,9 +1,7 @@
-name: Build project
-on:
-  push:
-    branches:
-      - main
-      - development
+name: GameCI Template
+
+on: push
+
 jobs:
   buildWebGL:
     name: Build for WebGL
@@ -11,15 +9,33 @@ jobs:
     strategy:
       fail-fast: false
     steps:
+      - name: Checkout code
       - uses: actions/checkout@v4
+      
+      - name: Create LFS file list
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+        
+      - name: Restore LFS cache
+        uses: actions/cache@v3
+        id: lfs-cache
         with:
-          fetch-depth: 0
-          lfs: true
-      - uses: actions/cache@v3
+          path: .git.lfs
+          key: ${{ runner.os }}-lfs-${{ hashfiles('.lfs-assets-id') }}
+          
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+          git add .
+          git reset --hard
+          
+      - name: Restore Library cache
+        uses: actions.cache@v3
         with:
           path: Library
           key: Library-build-WebGL
-          restore-keys: Library-
+          restore-keys: |
+            Library-build-
+            Library-
    
       - uses: game-ci/unity-builder@v4
         env:
@@ -28,27 +44,35 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: WebGL
+          
       - uses: actions/upload-artifacts@v3
         with:
           name: build-WebGL
-        path: build-WebGL
+          path: build/WebGL
  
 deployPages:
   needs: buildWebGL
   name: Deploy to Itch.io
   runs-on: ubuntu-latest
   steps:
-    - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - uses: actions/download-artifact@v2
       with:
         name: build-WebGL
-      path: build
+        path: build
+      
     - name: Display structure of root files
-    - run: ls -R
+      run: ls -R
       working-directory: build/WebGL
-    - uses: JamesIves/github-pages-deploy-action@4.1.4
+      
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@4.1.4
       with:
         branch: itch-io
-      folder: build/WebGL
+        folder: build/WebGL
+ 
     - uses: manleydev/butler-publish-itchio-action@master
       env:
         BUTLER_CREDENTIALS: ${{ secrets.ITCH_IO_API_KEY }}
