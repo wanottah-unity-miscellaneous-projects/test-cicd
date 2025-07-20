@@ -38,3 +38,32 @@ jobs:
         with:
           name: Build-WebGL
           path: build/WebGL
+
+  deployToItchIO:
+    needs: buildForWebGL
+    name: Deploy to Itch.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Build-WebGL
+          path: build/WebGL
+          
+      - name: Deploy to GitHub Pages (Optional)
+        uses: JamesIves/github-pages-deploy-action@v4.4.3
+        with:
+          branch: itch-io
+          folder: build/WebGL
+          
+      - name: Deploy to Itch.io
+        uses: manleydev/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.ITCH_IO_API_KEY }}
+          CHANNEL: html5
+          ITCH_GAME: test-cicd
+          ITCH_USER: wanottah
+          PACKAGE: build/WebGL
