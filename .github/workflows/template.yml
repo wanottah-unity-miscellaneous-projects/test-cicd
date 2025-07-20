@@ -1,83 +1,73 @@
 name: GameCI Template
 
-on: push
-
+on:
+  push:
+    branches:
+	  - main
+	  - development
+	  
 jobs:
-  buildWebGL:
-    name: Build for WebGL
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Checkout code
+ buildWebGL:
+   name: Build for WebGL
+   runs-on: ubuntu-latest
+   strategy:
+     fail-fast: false
+   steps:
       - uses: actions/checkout@v4
-      
-      - name: Create LFS file list
-        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-        
-      - name: Restore LFS cache
-        uses: actions/cache@v3
-        id: lfs-cache
         with:
-          path: .git.lfs
-          key: ${{ runner.os }}-lfs-${{ hashFiles('.lfs-assets-id') }}
-          
-      - name: Git LFS Pull
-        run: |
-          git lfs pull
-          git add .
-          git reset --hard
-          
-      - name: Restore Library cache
-        uses: actions.cache@v3
+          fetch-depth: 0
+          lfs: true
+      - uses: actions/cache@v3
         with:
           path: Library
-          key: Library-build-WebGL
-          restore-keys: |
-            Library-build-
-            Library-
-   
-      - uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          targetPlatform: WebGL
-          
-      - uses: actions/upload-artifacts@v3
-        with:
-          name: build-WebGL
-          path: build/WebGL
- 
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
+      - if: matrix.targetPlatform == 'Android'
+        uses: jlumbroso/free-disk-space@v1.3.1
+		   
+	 - name: Build project
+	   uses: game-ci/unity-builder@v4
+	   env:
+	     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+		   UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+		   UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+	   with:
+	     targetPlatform: WebGL
+		 
+	 - uses: actions/upload-artifacts@v3
+	   with:
+	     name: build-WebGL
+		   path: build/WebGL
+		 
 deployPages:
   needs: buildWebGL
   name: Deploy to Itch.io
-  runs-on: ubuntu-latest
+  runs-on: ubuntu-latest	 
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - uses: actions/download-artifact@v2
-      with:
-        name: build-WebGL
-        path: build
-      
-    - name: Display structure of root files
-      run: ls -R
-      working-directory: build/WebGL
-      
-    - name: Deploy
-      uses: JamesIves/github-pages-deploy-action@4.1.4
-      with:
-        branch: itch-io
-        folder: build/WebGL
- 
-    - uses: manleydev/butler-publish-itchio-action@master
-      env:
-        BUTLER_CREDENTIALS: ${{ secrets.ITCH_IO_API_KEY }}
-        CHANNEL: HTML
-        ITCH_GAME: test-cicd
-        ITCH_USER: wanottah
-        BRANCH: itch-io
-        PACKAGE: build/WebGL
+	- name: Checkout code
+	  uses: actions/checkout@v3
+		
+	- uses: actions/download-artifact@v2
+	  with:
+		name: build-WebGL
+		path: build
+		  
+	- name: Display structure of root files
+	  run: ls -R
+	  working-directory: build/WebGL
+		
+	- name: Deploy
+	  uses: JamesIves/github-pages-deploy-action@4.1.4
+	  with:
+		branch: itch-io
+		folder: build/WebGL
+		  
+	- uses: manleydev/butler-publish-itchio-action@master
+	  env:
+		BUTLER_CREDENTIALS: ${{ secrets.ITCH_IO_API_KEY }}
+		CHANNEL: HTML
+		ITCH_GAME: test-cicd
+		ITCH_USER: wanottah
+		BRANCH: itch-io
+		PACKAGE: build/WebGL
+	  
