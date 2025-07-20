@@ -40,7 +40,7 @@ jobs:
           path: build/WebGL
 
   deployToItchIO:
-    needs: build/WebGL
+    needs: Build for WebGL
     name: Deploy to Itch.io
     runs-on: ubuntu-latest
     steps:
