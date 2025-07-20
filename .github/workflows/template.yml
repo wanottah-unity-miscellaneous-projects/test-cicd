@@ -1,4 +1,4 @@
-name: Build project
+name: Build and Deploy to Itch.io
 
 on: 
   push:
@@ -7,34 +7,106 @@ on:
       - development
 
 jobs:
-  buildForAllSupportedPlatforms:
-    name: Build for ${{ matrix.targetPlatform }}
+  buildForWebGL:
+    name: Build Unity Project for WebGL
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        targetPlatform:
-          - WebGL # WebGL.
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-      - uses: actions/cache@v3
+          
+      - name: Cache Unity Library
+        uses: actions/cache@v3
         with:
           path: Library
-          key: Library-${{ matrix.targetPlatform }}
-          restore-keys: Library-
-      - if: matrix.targetPlatform == 'Android'
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+            Library-
+            
+      - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
-      - uses: game-ci/unity-builder@v4
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+          
+      - name: Build Unity Project
+        uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: ${{ matrix.targetPlatform }}
-      - uses: actions/upload-artifact@v4
+          targetPlatform: WebGL
+          buildMethod: UnityBuilderAction.BuildScript.Build
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: Build-WebGL
+          path: build/WebGL
+          retention-days: 1
+
+  deployToItchIO:
+    needs: buildForWebGL
+    name: Deploy to Itch.io
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Build-WebGL
+          path: build/WebGL
+          
+      - name: Display build structure
+        run: |
+          echo "Build directory structure:"
+          ls -la build/WebGL
+          echo "Contents:"
+          find build/WebGL -type f -name "*.html" -o -name "*.js" -o -name "*.wasm" | head -10
+          
+      - name: Deploy to GitHub Pages (Optional)
+        uses: JamesIves/github-pages-deploy-action@v4.4.3
+        with:
+          branch: gh-pages
+          folder: build/WebGL
+          clean: true
+          
+      - name: Deploy to Itch.io
+        uses: manleydev/butler-publish-itchio-action@master
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.ITCH_IO_API_KEY }}
+          CHANNEL: html5
+          ITCH_GAME: ${{ vars.ITCH_GAME || 'test-cicd' }}
+          ITCH_USER: ${{ vars.ITCH_USER || 'wanottah' }}
+          PACKAGE: build/WebGL
+          
+  notifyDeployment:
+    needs: [buildForWebGL, deployToItchIO]
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment Success
+        if: needs.deployToItchIO.result == 'success'
+        run: |
+          echo "🎉 Successfully deployed to Itch.io!"
+          echo "Game URL: https://${{ vars.ITCH_USER || 'wanottah' }}.itch.io/${{ vars.ITCH_GAME || 'test-cicd' }}"
+          
+      - name: Deployment Failed
+        if: needs.deployToItchIO.result == 'failure'
+        run: |
+          echo "❌ Deployment to Itch.io failed!"
+          echo "Check the logs above for details."
+          exit 1
